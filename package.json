@@ -1,0 +1,33 @@
+{
+  "name": "aeroshield-ai",
+  "version": "1.0.0",
+  "description": "GenAI-Powered Winter Smog & Urban Air Pollution Navigator for Families & Communities",
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "build": "cd client && npm install && npm run build",
+    "vercel-build": "cd client && npm install && npm run build",
+    "test": "node test-api.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "keywords": [
+    "air-quality",
+    "smog",
+    "pm25",
+    "aqi",
+    "genai",
+    "gemini",
+    "corsi-rosenthal",
+    "indoor-air-quality",
+    "low-emission"
+  ],
+  "author": "Google DeepMind Antigravity",
+  "license": "MIT"
+}
