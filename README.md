@@ -1,6 +1,11 @@
 # AeroShield AI 🌬️
 ### *GenAI-Powered Winter Smog & Urban Air Pollution Navigator for Families and Communities*
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-success?style=for-the-badge&logo=vercel)](https://aeroshield-ai-pi.vercel.app)
+[![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
+
+🌐 **Live Deployment**: [https://aeroshield-ai-pi.vercel.app](https://aeroshield-ai-pi.vercel.app)
+
 AeroShield AI is a full-stack, science-grounded GenAI application built to help households and neighborhood communities navigate severe winter smog and urban air pollution. It combines real-time hyperlocal air quality data, atmospheric thermal inversion forecasting, interactive room engineering calculators, and generative AI routines to minimize both personal exposure and community emissions.
 
 ---
