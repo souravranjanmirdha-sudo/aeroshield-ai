@@ -1,8 +1,43 @@
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { TrendingUp, Clock, AlertTriangle, ShieldCheck, Sun, Moon } from 'lucide-react';
+import { TrendingUp, Sun, Moon } from 'lucide-react';
 
-export default function HourlyChart({ hourlyData, cleanWindow }) {
+const CustomTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-xl text-xs space-y-1">
+        <div className="font-bold text-slate-200 flex items-center justify-between gap-4">
+          <span>{data.time}</span>
+          {data.hour >= 6 && data.hour <= 18 ? (
+            <Sun className="w-3.5 h-3.5 text-amber-400" />
+          ) : (
+            <Moon className="w-3.5 h-3.5 text-indigo-400" />
+          )}
+        </div>
+        <div className="text-cyan-400 font-semibold">
+          PM2.5: <strong className="text-white">{data.pm2_5}</strong> µg/m³
+        </div>
+        <div className="text-slate-400">
+          AQI: <strong className="text-slate-200">{data.aqi}</strong>
+        </div>
+        {data.isClean && (
+          <div className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800">
+            Safe Ventilation Window
+          </div>
+        )}
+        {data.isInversion && (
+          <div className="text-[10px] text-rose-400 font-bold bg-rose-950/60 px-1.5 py-0.5 rounded border border-rose-800">
+            Ground Inversion Hazard
+          </div>
+        )}
+      </div>
+    );
+  }
+  return null;
+};
+
+export default function HourlyChart({ hourlyData }) {
   if (!hourlyData || hourlyData.length === 0) {
     return (
       <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 text-center text-slate-400">
@@ -24,41 +59,6 @@ export default function HourlyChart({ hourlyData, cleanWindow }) {
       isInversion: item.isInversionPeak
     };
   });
-
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-xl text-xs space-y-1">
-          <div className="font-bold text-slate-200 flex items-center justify-between gap-4">
-            <span>{data.time}</span>
-            {data.hour >= 6 && data.hour <= 18 ? (
-              <Sun className="w-3.5 h-3.5 text-amber-400" />
-            ) : (
-              <Moon className="w-3.5 h-3.5 text-indigo-400" />
-            )}
-          </div>
-          <div className="text-cyan-400 font-semibold">
-            PM2.5: <strong className="text-white">{data.pm2_5}</strong> µg/m³
-          </div>
-          <div className="text-slate-400">
-            AQI: <strong className="text-slate-200">{data.aqi}</strong>
-          </div>
-          {data.isClean && (
-            <div className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800">
-              Safe Ventilation Window
-            </div>
-          )}
-          {data.isInversion && (
-            <div className="text-[10px] text-rose-400 font-bold bg-rose-950/60 px-1.5 py-0.5 rounded border border-rose-800">
-              Ground Inversion Hazard
-            </div>
-          )}
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="space-y-6">

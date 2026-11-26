@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -7,8 +8,24 @@ dotenv.config();
 const app = express();
 const router = express.Router();
 
+app.use(compression());
 app.use(cors());
 app.use(express.json());
+
+// --- IN-MEMORY CACHE WITH TTL FOR MAXIMUM EFFICIENCY ---
+const cache = new Map();
+function getCached(key) {
+  const item = cache.get(key);
+  if (!item) return null;
+  if (Date.now() > item.expiry) {
+    cache.delete(key);
+    return null;
+  }
+  return item.data;
+}
+function setCached(key, data, ttlSeconds = 600) {
+  cache.set(key, { data, expiry: Date.now() + (ttlSeconds * 1000) });
+}
 
 // Helper: Berkeley Earth approximate cigarette equivalent for PM2.5 exposure (24h continuous)
 function calculateCigaretteEquivalents(pm25Val) {
@@ -72,17 +89,29 @@ function getAqiCategory(aqi) {
   };
 }
 
-// Route: Get real-time & forecast AQI data via Open-Meteo
+// Route: Get real-time & forecast AQI data via Open-Meteo (Cached for 10 mins)
 router.get('/aqi', async (req, res) => {
   try {
     let { lat, lon, city = 'Delhi' } = req.query;
     let cityName = city;
     let country = '';
 
+    const cacheKey = `aqi_${city.toLowerCase()}_${lat || 'none'}_${lon || 'none'}`;
+    const cachedData = getCached(cacheKey);
+    if (cachedData) {
+      return res.json(cachedData);
+    }
+
     if (!lat || !lon) {
-      const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`;
-      const geoRes = await fetch(geoUrl);
-      const geoData = await geoRes.json();
+      const geoCacheKey = `geo_${city.toLowerCase()}`;
+      let geoData = getCached(geoCacheKey);
+      if (!geoData) {
+        const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`;
+        const geoRes = await fetch(geoUrl);
+        geoData = await geoRes.json();
+        setCached(geoCacheKey, geoData, 86400); // Cache geocode for 24 hours
+      }
+
       if (geoData && geoData.results && geoData.results.length > 0) {
         const topResult = geoData.results[0];
         lat = topResult.latitude;
@@ -146,7 +175,7 @@ router.get('/aqi', async (req, res) => {
     const category = getAqiCategory(currentUsAqi);
     const cigarettesEq = calculateCigaretteEquivalents(currentPm25);
 
-    res.json({
+    const resultPayload = {
       success: true,
       location: {
         city: cityName,
@@ -168,7 +197,10 @@ router.get('/aqi', async (req, res) => {
       },
       cleanWindow: bestWindow,
       hourlyForecast: hourlyWindows
-    });
+    };
+
+    setCached(cacheKey, resultPayload, 600); // Cache AQI for 10 minutes
+    res.json(resultPayload);
   } catch (err) {
     console.error('AQI fetch error:', err);
     res.status(500).json({
@@ -179,7 +211,232 @@ router.get('/aqi', async (req, res) => {
   }
 });
 
-// Route: Personalized Low-Emission Routine Generator
+// Helper: Comprehensive Expert Routine Engine
+function buildExpertFamilyRoutine({
+  householdMembers,
+  hasChildren,
+  hasElderly,
+  hasAsthma,
+  commuteMode,
+  heatingType,
+  cookingFuel,
+  currentAqi,
+  city
+}) {
+  const isSevere = currentAqi > 200;
+  const isHazardous = currentAqi > 280;
+
+  // Sustainable alternatives tailored to profile
+  const sustainableAlternatives = [
+    {
+      category: 'Commute & Travel',
+      currentHabit: commuteMode === 'car' ? 'Solo gasoline car cold-start trips' : (commuteMode === 'bicycle' ? 'Cycling during morning rush hour' : 'Single passenger transit'),
+      sustainableSwap: commuteMode === 'car' 
+        ? '3-Household School Carpool or Shift Departure by 35 Mins'
+        : 'Protected route along tree-lined secondary streets with N95 respirator',
+      personalBenefit: 'Avoids breathing direct vehicular exhaust at 180+ µg/m³ sitting in stop-and-go gridlock',
+      communityBenefit: commuteMode === 'car' ? 'Eliminates 5.4 kg CO2 & 3 idling cold-starts daily' : 'Zero localized tailpipe particulate emission',
+      impactScore: 'High'
+    },
+    {
+      category: 'Space Heating',
+      currentHabit: heatingType === 'wood' || heatingType === 'biomass' 
+        ? 'Indoor wood/biomass fire burning' 
+        : (heatingType === 'gas' ? 'Unvented or flued gas space heating' : 'Whole-house continuous electrical radiator'),
+      sustainableSwap: heatingType === 'wood' || heatingType === 'biomass'
+        ? 'URGENT SWAP: Sealed electric thermal blanket or oil-filled radiant heater'
+        : 'Zone-Heating only occupied bedrooms + thermal window draft quilts',
+      personalBenefit: heatingType === 'wood' ? 'Eliminates 100% of indoor carcinogenic polycyclic aromatic hydrocarbons' : 'Prevents oxygen depletion and bedroom dryness',
+      communityBenefit: 'Reduces peak evening electrical/fuel grid demand by 18-35%',
+      impactScore: 'Critical'
+    },
+    {
+      category: 'Cooking & Nutrition',
+      currentHabit: cookingFuel === 'unvented_gas' ? 'High-heat frying without range hood' : 'Cooking on gas without pot lids',
+      sustainableSwap: 'Covered braising, induction steaming, and strict kitchen door isolation',
+      personalBenefit: 'Prevents indoor cooking PM2.5 spikes from exceeding 350 µg/m³ in dining areas',
+      communityBenefit: 'Reduces residential gas emissions during peak evening smog convergence',
+      impactScore: 'Medium-High'
+    },
+    {
+      category: 'Dust Management',
+      currentHabit: 'Dry broom sweeping or non-HEPA vacuuming',
+      sustainableSwap: 'Damp microfiber flat-mopping twice weekly + outdoor shoe-cleaning tray',
+      personalBenefit: 'Prevents aerosolizing settled toxic lead and road soot at child breathing height',
+      communityBenefit: 'Stops airborne particulate resuspension in shared apartment hallways',
+      impactScore: 'High'
+    }
+  ];
+
+  // Granular, realistic 7-phase daily timeline
+  const timeline = [
+    {
+      time: '06:00 - 07:15 AM',
+      phase: 'Dawn Boundary Layer Trap & Awakening',
+      summary: 'Coldest hour of the day. Ground-level thermal inversion compresses outdoor pollutants into a dense, stagnant surface layer.',
+      action: 'Keep exterior windows hermetically sealed. Move the central air cleaner from bedroom to breakfast nook. Drink warm water to hydrate respiratory mucosa.',
+      lowEmissionTactic: 'Keep room thermostat dialed to 19°C; use warm flannel clothing rather than ramping full-house electric heaters.',
+      iaqSafety: 'Run DIY Corsi-Rosenthal unit on medium-high in dining space 15 minutes before the family wakes up.',
+      avoidedExposurePercent: '50%',
+      checklist: [
+        'Check that all bedroom and balcony windows remain firmly shut',
+        'Switch dining room air filter to medium-high setting',
+        hasAsthma ? 'Asthmatic member: administer morning prescribed preventive inhaler' : 'Hydrate with warm water before moving around'
+      ],
+      roleDirectives: {
+        children: 'Keep children in the bedroom until breakfast area air cleaner has run for 15 minutes.',
+        asthma: 'Administer morning maintenance dose before temperature shifts; avoid balconies.',
+        elderly: 'Perform light indoor stretching in sealed living room; strictly avoid early morning balcony walks.',
+        commuter: 'Check live AQI window before deciding on commute schedule or departure time.'
+      }
+    },
+    {
+      time: '07:15 - 08:30 AM',
+      phase: 'Breakfast & School Departure Prep',
+      summary: 'Cooking fumes indoors combine with peak vehicular rush hour outdoors.',
+      action: 'Cook breakfast using tight-fitting lids. Keep kitchen door closed to prevent aerosolized oils from migrating into bedrooms.',
+      lowEmissionTactic: 'Prepare batch hot oatmeal or boiled meals instead of unvented pan-frying; saves fuel and cuts PM2.5 by 80%.',
+      iaqSafety: 'Inspect door weatherstripping seals. Keep entryway closed during shoe changing.',
+      avoidedExposurePercent: '45%',
+      checklist: [
+        'Always close the kitchen door and run range hood while cooking',
+        'Fit N95 / KF94 respirators before stepping outside front door',
+        'Check child backpack for backup clean mask in a sealed pouch'
+      ],
+      roleDirectives: {
+        children: 'Equip well-fitting pediatric KF94/N95 mask. Pinch metal nose-bridge firmly before leaving apartment.',
+        asthma: 'Carry rescue inhaler in pocket; keep scarf over mask in freezing smog air.',
+        elderly: 'Stay indoors while doors are opening and closing for work/school departures.',
+        commuter: 'Coordinate carpool pickup so children wait in the building lobby, not by the idling roadside.'
+      }
+    },
+    {
+      time: '08:30 - 10:30 AM',
+      phase: 'Morning Gridlock & Commute Route Optimization',
+      summary: 'Nitrogen dioxide (NO2) and diesel soot peak along major thoroughfares.',
+      action: commuteMode === 'car' 
+        ? 'Engage internal HVAC Recirculation mode BEFORE turning the ignition. Avoid idling while waiting.' 
+        : 'Choose secondary residential roads with tree canopies over congested multi-lane arterial highways.',
+      lowEmissionTactic: 'Eliminate engine idling at school gates or traffic halts. Restarting modern engines burns less fuel than 10 seconds of idling.',
+      iaqSafety: 'Never roll car windows down in traffic. Automotive cabin air filters scrub up to 70% PM2.5 only when Recirculation is ACTIVE.',
+      avoidedExposurePercent: '40%',
+      checklist: [
+        'Ensure car AC is set to "Internal Recirculate" (not fresh intake)',
+        'Turn off car engine immediately while waiting at school gates or red lights >30s',
+        'Wipe hands and face with damp wipe upon arrival at office/school'
+      ],
+      roleDirectives: {
+        children: 'Keep mask on throughout bus/car ride; avoid opening school bus windows.',
+        asthma: 'If taking transit, stand in the center of train/metro platforms away from tunnel exhaust draft.',
+        elderly: 'Rest indoors; avoid running outdoor errands until midday inversion break.',
+        commuter: 'Avoid aggressive acceleration which causes 3x higher tailpipe particulate output.'
+      }
+    },
+    {
+      time: '11:45 AM - 01:45 PM',
+      phase: 'Midday Convective Mixing & Controlled Air Flush',
+      summary: 'Solar radiation warms the ground, breaking vertical thermal inversion. Ground-level PM2.5 drops to daily minimum.',
+      action: 'Check AeroShield Clean Air Window indicator. If PM2.5 has dropped, perform a rapid 10-12 minute cross-ventilation to flush accumulated indoor CO2 and VOCs.',
+      lowEmissionTactic: 'Open south-facing curtains to harvest passive solar warmth and turn down electric room heaters.',
+      iaqSafety: 'Immediately seal windows after 12 minutes. Run purifiers on HIGH for 20 minutes to scrub any residual outdoor particulates.',
+      avoidedExposurePercent: '30%',
+      checklist: [
+        'Check current AQI window on AeroShield dashboard',
+        'Conduct a 10-minute cross-ventilation flush across opposing windows',
+        'Turn air purifiers to maximum boost for 20 minutes right after closing windows'
+      ],
+      roleDirectives: {
+        children: 'Only safe window for brief supervised outdoor yard recess if AQI < 150.',
+        asthma: 'Stay inside during the 10-minute ventilation flush; re-enter room after purifier has scrubbed for 15 mins.',
+        elderly: 'Sit near sunlit window to absorb natural warmth and vitamin D.',
+        commuter: 'Take a short indoor lunch walk away from street-facing building exits.'
+      }
+    },
+    {
+      time: '02:00 - 05:00 PM',
+      phase: 'Afternoon Infiltration Defense & Indoor Care',
+      summary: 'Atmosphere remains moderately mixed before early winter sunset begins cooling the ground.',
+      action: 'Perform routine indoor cleaning. Ban dry sweeping. Use damp microfiber cloths to capture heavy metal soot from windowsills and coffee tables.',
+      lowEmissionTactic: 'Consolidate digital device charging and laundry while grid intensity is lowest.',
+      iaqSafety: 'Maintain indoor relative humidity between 40-50% using cool-mist humidifier to preserve respiratory cilia integrity.',
+      avoidedExposurePercent: '35%',
+      checklist: [
+        'Damp-wipe high-touch surfaces (screens, tables, window sills)',
+        'Check humidifier water level (maintain 40-50% RH)',
+        'Confirm evening carpool or consolidated errand plan'
+      ],
+      roleDirectives: {
+        children: 'Encourage indoor homework or non-aerobic creative activities; keep hydration high.',
+        asthma: 'Monitor peak flow reading if available; drink warm herbal tea to soothe throat lining.',
+        elderly: 'Ensure feet and chest are kept warm; check indoor temperature is steady at 20-22°C.',
+        commuter: 'Pre-schedule evening departure to avoid leaving at the 06:00 PM gridlock apex.'
+      }
+    },
+    {
+      time: '05:30 - 07:30 PM',
+      phase: 'Twilight Inversion Collapse & Evening Commute',
+      summary: 'Sunset triggers surface cooling. The atmospheric boundary layer rapidly sinks, trapping evening rush hour fumes near the pavement.',
+      action: 'Return home using transit or carpool. Upon stepping inside, remove shoes at the threshold, wipe down jackets, and perform warm water nasal rinse.',
+      lowEmissionTactic: 'Consolidate multiple errands into a single loop to avoid multiple cold-engine starts.',
+      iaqSafety: 'Set up an entry threshold "clean zone". Wipe shoe soles on damp entryway mat; change out of road clothes.',
+      avoidedExposurePercent: '45%',
+      checklist: [
+        'Take off outerwear and shoes at entryway threshold',
+        'Perform warm water face wash and gentle nasal saline rinse',
+        'Close all door curtains to prevent convective heat and clean air loss'
+      ],
+      roleDirectives: {
+        children: 'Wash hands and face immediately upon entering; change into clean indoor clothes.',
+        asthma: 'Do nasal saline rinse to flush PM2.5 deposited in nasal turbinates.',
+        elderly: 'Avoid opening exterior doors during heavy commute return hours.',
+        commuter: 'Wipe dashboard and steering wheel with microfiber cloth once a week.'
+      }
+    },
+    {
+      time: '08:00 - 10:30 PM',
+      phase: 'Dinner Source Control & Night Clean Sleep Sanctuary',
+      summary: 'Nighttime ground inversion reaches peak density. Safe sleep requires an airtight, purified bedroom air bubble.',
+      action: 'Establish master and children\'s bedrooms as sealed "Clean Air Sanctuaries". Turn on quiet HEPA/Corsi-Rosenthal filtration 30 minutes before bedtime.',
+      lowEmissionTactic: heatingType === 'wood' || heatingType === 'biomass' 
+        ? 'STRICT: Zero open burning. Use electric heated throws which consume only 60W instead of 1500W space heaters.'
+        : 'Set thermostat to 18°C and use high-tog winter duvets; zone-heat only the occupied bedrooms.',
+      iaqSafety: 'Keep bedroom doors closed to contain clean air. Target bedroom PM2.5 under 12 µg/m³ for non-disrupted REM sleep and cellular repair.',
+      avoidedExposurePercent: '60%',
+      checklist: [
+        'Close bedroom doors and ensure door sweep/draft snake is in place',
+        'Switch bedroom air purifier to quiet continuous sleep mode',
+        'Set bedroom heater to zone-heating only (18-19°C)'
+      ],
+      roleDirectives: {
+        children: 'Keep bedroom door closed with air purifier running on sleep mode near the bed headboard.',
+        asthma: 'Keep rescue inhaler and glass of water on nightstand; ensure bedroom humidity is at 45%.',
+        elderly: 'Use warm electric blanket on low; ensure bedroom path is well-lit and draft-free.',
+        commuter: 'Check tomorrow morning forecast on AeroShield to plan early departure adjustments.'
+      }
+    }
+  ];
+
+  const calculatedAvoidedDosage = Math.round(currentAqi * 1.6 * (hasChildren ? 1.25 : 1.0) * (hasAsthma ? 1.2 : 1.0));
+  const calculatedCo2Saved = Number((commuteMode === 'car' ? 6.8 : (commuteMode === 'electric' ? 3.2 : 2.1)).toFixed(1));
+  const calculatedCigsSaved = calculateCigaretteEquivalents(currentAqi * 0.45);
+
+  return {
+    summary: `Engineered 7-phase winter smog navigation protocol for ${householdMembers} residents in ${city}. Synchronized with atmospheric diurnal inversion curves to prevent deep lung PM2.5 dosage while slashing household heating & commute emissions.`,
+    priorityWarning: (hasAsthma || hasChildren || hasElderly)
+      ? `CRITICAL HEALTH PROTOCOL: High-vulnerability individuals (${[hasChildren && 'Children', hasAsthma && 'Asthma/Respiratory', hasElderly && 'Elderly'].filter(Boolean).join(', ')}) detected. Strict N95 mask protocols and bedroom air sanctuary isolation required during inversion peaks (06:00-09:00 AM & 06:00-09:00 PM).`
+      : `ELEVATED SMOG ADVISORY: AQI is ${currentAqi}. Synchronize home ventilation strictly with midday thermal mixing window and eliminate solo cold-start vehicle idling.`,
+    timeline,
+    sustainableAlternatives,
+    directImpact: {
+      dailyAvoidedPm25Micrograms: calculatedAvoidedDosage,
+      co2AvoidedKg: calculatedCo2Saved,
+      equivalentCigarettesAvoided: calculatedCigsSaved,
+      explanation: `By aligning outdoor trips away from dawn/dusk thermal inversion layers and applying bedroom positive-pressure filtration, your household eliminates an estimated ${calculatedAvoidedDosage} µg of fine particulate lung deposition per person daily while cutting ${calculatedCo2Saved} kg of CO2 via smart zone-heating and anti-idling.`
+    }
+  };
+}
+
+// Route: Personalized Low-Emission Routine Generator (With Gemini + Deep Expert Fallback)
 router.post('/ai/routine', async (req, res) => {
   try {
     const {
@@ -195,6 +452,12 @@ router.post('/ai/routine', async (req, res) => {
       apiKey = ''
     } = req.body;
 
+    const cacheKey = `routine_${city}_${householdMembers}_${hasChildren}_${hasElderly}_${hasAsthma}_${commuteMode}_${heatingType}_${cookingFuel}_${Math.round(currentAqi/20)}`;
+    const cachedRoutine = getCached(cacheKey);
+    if (cachedRoutine) {
+      return res.json({ success: true, source: 'cache', routine: cachedRoutine });
+    }
+
     const keyToUse = apiKey || process.env.GEMINI_API_KEY;
 
     if (keyToUse) {
@@ -204,121 +467,83 @@ router.post('/ai/routine', async (req, res) => {
         const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
         
         const prompt = `
-You are an expert Winter Smog & Urban Air Pollution specialist for AeroShield AI.
-Create a detailed, low-emission daily routine for a family living in ${city}.
-Family Profile:
-- Members: ${householdMembers}
-- Vulnerable members: Children=${hasChildren}, Elderly=${hasElderly}, Asthma/Respiratory=${hasAsthma}
+You are an expert atmospheric scientist, IAQ engineer, and preventive pulmonologist for AeroShield AI.
+Create an exhaustive, highly practical 7-phase low-emission daily routine for a family in ${city} (Current AQI: ${currentAqi}).
+
+Household Profile:
+- Total members: ${householdMembers}
+- Vulnerabilities: Children=${hasChildren}, Elderly=${hasElderly}, Asthma/COPD=${hasAsthma}
 - Commute: ${commuteMode}
 - Heating: ${heatingType}
-- Cooking fuel: ${cookingFuel}
-- Current AQI: ${currentAqi}
+- Cooking: ${cookingFuel}
 
-Respond in strictly valid JSON format with this structure:
+Respond in strictly valid JSON format matching this schema:
 {
-  "summary": "Brief encouraging overview of the routine strategy",
-  "priorityWarning": "Crucial health warning based on vulnerable members and AQI",
+  "summary": "Concise strategic summary",
+  "priorityWarning": "Health warning for vulnerable members during inversion traps",
   "timeline": [
     {
-      "time": "06:30 - 08:00 AM",
-      "phase": "Morning Preparation & School/Work Run",
-      "action": "Specific routine step",
-      "lowEmissionTactic": "How to reduce personal emissions",
-      "iaqSafety": "How to protect indoor and lungs",
-      "avoidedExposurePercent": "25%"
-    },
+      "time": "06:00 - 07:15 AM",
+      "phase": "Dawn Boundary Layer Trap & Awakening",
+      "summary": "What happens in the atmosphere and home",
+      "action": "Specific concrete action",
+      "lowEmissionTactic": "Personal footprint reduction",
+      "iaqSafety": "Lung protection hack",
+      "avoidedExposurePercent": "50%",
+      "checklist": ["Task 1", "Task 2", "Task 3"],
+      "roleDirectives": {
+        "children": "Specific directive for kids",
+        "asthma": "Specific directive for asthma/respiratory",
+        "elderly": "Specific directive for seniors",
+        "commuter": "Specific directive for drivers/commuters"
+      }
+    }
+  ],
+  "sustainableAlternatives": [
     {
-      "time": "11:30 AM - 02:30 PM",
-      "phase": "Midday Thermal Mixing & Indoor Care",
-      "action": "Specific routine step",
-      "lowEmissionTactic": "Energy/heating conservation tip",
-      "iaqSafety": "Ventilation or air cleaning protocol",
-      "avoidedExposurePercent": "40%"
-    },
-    {
-      "time": "05:00 - 07:30 PM",
-      "phase": "Evening Peak Inversion & Commute",
-      "action": "Specific routine step",
-      "lowEmissionTactic": "Carpooling/transit/anti-idling",
-      "iaqSafety": "Indoor air purification and seal checks",
-      "avoidedExposurePercent": "35%"
-    },
-    {
-      "time": "08:00 - 10:30 PM",
-      "phase": "Night-time Clean Sleep Zone",
-      "action": "Specific routine step",
-      "lowEmissionTactic": "Smart zone-heating without biomass or unvented heaters",
-      "iaqSafety": "Bedroom air bubble protocol",
-      "avoidedExposurePercent": "50%"
+      "category": "Commute | Heating | Cooking | Cleaning",
+      "currentHabit": "Habit",
+      "sustainableSwap": "Better alternative",
+      "personalBenefit": "Direct health benefit",
+      "communityBenefit": "Community emission cut",
+      "impactScore": "Critical | High | Medium"
     }
   ],
   "directImpact": {
-    "dailyAvoidedPm25Micrograms": 240,
-    "co2AvoidedKg": 4.8,
-    "equivalentCigarettesAvoided": 2.6,
-    "explanation": "Scientific explanation of why this routine reduces both emissions and inhaled dosage"
+    "dailyAvoidedPm25Micrograms": 280,
+    "co2AvoidedKg": 5.4,
+    "equivalentCigarettesAvoided": 3.1,
+    "explanation": "Scientific explanation"
   }
 }
-Only output the JSON.
+Generate all 7 full-day phases (Morning, School/Work Prep, Commute, Midday Flush, Afternoon Care, Twilight Commute, Night Sleep Sanctuary). Only output the JSON.
 `;
 
         const result = await model.generateContent(prompt);
         const text = result.response.text();
         const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
         const parsed = JSON.parse(cleaned);
+        setCached(cacheKey, parsed, 1800); // Cache for 30 minutes
         return res.json({ success: true, source: 'gemini', routine: parsed });
       } catch (geminiErr) {
-        console.warn('Gemini API call failed, falling back to expert reasoning engine:', geminiErr.message);
+        console.warn('Gemini API call failed, deploying deep expert fallback:', geminiErr.message);
       }
     }
 
-    const routine = {
-      summary: `Tailored winter smog defense for ${householdMembers} household members in ${city}. Focuses on mitigating winter temperature inversion peaks while slashing household emissions.`,
-      priorityWarning: hasAsthma || hasChildren
-        ? 'ALERT: High-risk vulnerable individuals present. Strictly avoid outdoor exercise during early morning and late evening thermal inversion peaks.'
-        : 'Moderate to high smog conditions: minimize motorized solo trips and seal indoor sleeping zones.',
-      timeline: [
-        {
-          time: '06:30 - 08:30 AM',
-          phase: 'Morning Smog Peak & Departure',
-          action: 'Keep all windows tightly closed. Pre-heat living areas using zone-heating rather than heating the entire house. Prepare warm breakfast using covered pans and range hood on high.',
-          lowEmissionTactic: commuteMode === 'car' ? 'Activate carpooling or shift departure by 30 mins to avoid gridlock idling emissions; ensure recirculate mode is ON.' : 'Wear N95 respirator if walking or cycling; choose secondary tree-lined streets over congested arterial highways.',
-          iaqSafety: 'Run DIY Corsi-Rosenthal filter or HEPA unit in breakfast area. Check door sweeps.',
-          avoidedExposurePercent: '45%'
-        },
-        {
-          time: '12:00 - 02:30 PM',
-          phase: 'Thermal Inversion Break & Controlled Ventilation',
-          action: 'Check live AQI window. If midday solar radiation has broken the ground inversion layer, perform a controlled 10-minute cross-ventilation to flush CO2 and indoor VOCs.',
-          lowEmissionTactic: 'Turn down thermostat or electric heaters during midday peak warmth; utilize natural sunlight through southern windows.',
-          iaqSafety: 'Immediately seal windows after 10 mins and turn purifiers to medium to scrub residual outside PM2.5.',
-          avoidedExposurePercent: '30%'
-        },
-        {
-          time: '05:30 - 07:30 PM',
-          phase: 'Evening Peak Congestion & Return',
-          action: 'Winter twilight brings renewed boundary-layer collapse. Consolidate errands into a single trip or coordinate community grocery runs.',
-          lowEmissionTactic: 'Eliminate engine idling while waiting at schools or transit hubs; engine restarts use less fuel than 10 seconds of idling.',
-          iaqSafety: 'Wipe shoes and outerwear at the threshold with a damp cloth to prevent tracking heavy road dust and soot into living quarters.',
-          avoidedExposurePercent: '40%'
-        },
-        {
-          time: '08:30 - 10:30 PM',
-          phase: 'Night-time Clean Sleep Zone Creation',
-          action: 'Establish the master and children’s bedrooms as sealed "Clean Air Sanctuaries". Close bedroom doors and run the quietest filter setting.',
-          lowEmissionTactic: heatingType === 'wood' || heatingType === 'biomass' ? 'CRITICAL: Cease indoor wood/biomass burning. Switch to sealed electric heat blankets or oil radiators to eliminate deadly indoor soot.' : 'Set thermostat 2°C lower and use thermal quilts to cut heating grid footprint by 12%.',
-          iaqSafety: 'Maintain indoor PM2.5 below 15 µg/m³. Keep indoor humidity between 40-50% to protect bronchial mucosal linings.',
-          avoidedExposurePercent: '55%'
-        }
-      ],
-      directImpact: {
-        dailyAvoidedPm25Micrograms: Math.round(currentAqi * 1.4),
-        co2AvoidedKg: commuteMode === 'car' ? 6.2 : 2.1,
-        equivalentCigarettesAvoided: calculateCigaretteEquivalents(currentAqi * 0.4),
-        explanation: 'By shifting ventilation to midday thermal mixing windows and avoiding early morning exposure, the family cuts inhaled fine particulates by over 45% while reducing peak heating emissions.'
-      }
-    };
+    // Deploy deep modular expert fallback
+    const routine = buildExpertFamilyRoutine({
+      householdMembers,
+      hasChildren,
+      hasElderly,
+      hasAsthma,
+      commuteMode,
+      heatingType,
+      cookingFuel,
+      currentAqi,
+      city
+    });
 
+    setCached(cacheKey, routine, 1800);
     res.json({ success: true, source: 'expert-engine', routine });
   } catch (err) {
     console.error('Routine error:', err);

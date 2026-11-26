@@ -9,7 +9,7 @@ import CommunityHub from './components/CommunityHub';
 import SettingsModal from './components/SettingsModal';
 import { ShaderMetal } from '@/components/ui/shader-metal';
 import ShaderMetalDemo from '@/components/ui/demo';
-import { Calendar, Wrench, TrendingUp, Bot, HeartHandshake, Shield, Sparkles } from 'lucide-react';
+import { Calendar, Wrench, TrendingUp, Bot, HeartHandshake, Sparkles } from 'lucide-react';
 
 export default function App() {
   const [selectedCity, setSelectedCity] = useState('Delhi');
@@ -19,12 +19,12 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('routine');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [apiKey, setApiKey] = useState(() => {
-    return localStorage.getItem('aeroshield_api_key') || '';
+    return typeof window !== 'undefined' ? localStorage.getItem('aeroshield_api_key') || '' : '';
   });
 
   // Background shader settings
   const [bgMetal, setBgMetal] = useState('chrome');
-  const [bgSpeed, setBgSpeed] = useState(0.2);
+  const bgSpeed = 0.2;
 
   const fetchAqi = async (city) => {
     setLoadingAqi(true);
@@ -45,7 +45,26 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchAqi(selectedCity);
+    let isMounted = true;
+    const init = async () => {
+      try {
+        const res = await fetch(`/api/aqi?city=${encodeURIComponent(selectedCity)}`);
+        const data = await res.json();
+        if (isMounted && data && !data.error) {
+          setAqiData(data);
+          if (data.location?.city) {
+            setSelectedCity(data.location.city);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load AQI:', err);
+      } finally {
+        if (isMounted) setLoadingAqi(false);
+      }
+    };
+    init();
+    return () => { isMounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCitySelect = (city) => {
@@ -151,7 +170,6 @@ export default function App() {
             {activeTab === 'forecast' && (
               <HourlyChart
                 hourlyData={aqiData?.hourlyForecast}
-                cleanWindow={aqiData?.cleanWindow}
               />
             )}
 
@@ -209,19 +227,19 @@ export default function App() {
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-slate-900 bg-slate-950/90 backdrop-blur py-6 mt-12 text-center text-xs text-slate-500">
+        <footer className="border-t border-slate-900 bg-slate-950/95 backdrop-blur py-6 mt-12 text-center text-xs text-slate-300">
           <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-slate-400">AeroShield AI</span>
+            <div className="flex items-center gap-2 text-slate-300">
+              <span className="font-bold text-white">AeroShield AI</span>
               <span>—</span>
-              <span>Winter Smog & Urban Air Pollution Copilot</span>
+              <span className="text-slate-200">Winter Smog & Urban Air Pollution Copilot</span>
             </div>
-            <div className="flex items-center gap-4 text-[11px] text-slate-500">
-              <span>Open-Meteo Real-Time Air Quality</span>
-              <span>•</span>
-              <span>Berkeley Earth Benchmark</span>
-              <span>•</span>
-              <span>Corsi-Rosenthal Foundation</span>
+            <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-slate-300 font-semibold">
+              <span className="text-slate-200">Open-Meteo Real-Time Air Quality</span>
+              <span className="text-slate-500">•</span>
+              <span className="text-slate-200">Berkeley Earth Benchmark</span>
+              <span className="text-slate-500">•</span>
+              <span className="text-slate-200">Corsi-Rosenthal Foundation</span>
             </div>
           </div>
         </footer>

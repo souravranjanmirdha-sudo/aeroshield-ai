@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Key, ShieldCheck, ExternalLink, Sparkles } from 'lucide-react';
+import { X, Key, ExternalLink } from 'lucide-react';
 
 export default function SettingsModal({ isOpen, onClose, apiKey, onSaveApiKey }) {
   const [tempKey, setTempKey] = useState(apiKey || '');
@@ -24,7 +24,8 @@ export default function SettingsModal({ isOpen, onClose, apiKey, onSaveApiKey })
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors cursor-pointer"
+          aria-label="Close modal dialog"
+          className="absolute top-4 right-4 p-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>

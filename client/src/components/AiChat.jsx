@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles, MessageSquare, Lightbulb, ShieldCheck } from 'lucide-react';
+import { Send, Bot, User, Lightbulb, ShieldCheck } from 'lucide-react';
 
 const SUGGESTIONS = [
   "Can my kids play outside in this AQI?",
@@ -184,7 +184,8 @@ What questions do you have about protecting your family today?`
         <button
           type="submit"
           disabled={loading || !input.trim()}
-          className="p-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold transition-all shrink-0 cursor-pointer"
+          aria-label="Send message"
+          className="p-3 min-w-[44px] min-h-[44px] rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold transition-all shrink-0 cursor-pointer flex items-center justify-center"
         >
           <Send className="w-4 h-4" />
         </button>

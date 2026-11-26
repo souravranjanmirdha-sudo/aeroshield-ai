@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Box, Wrench, Shield, CheckCircle2, DollarSign, Zap, AlertCircle, Info, Layers } from 'lucide-react';
+import React from 'react';
+import { Box, Wrench, Shield, Zap, AlertCircle, Layers } from 'lucide-react';
 
 export default function IndoorHacks() {
-  const [roomArea, setRoomArea] = useState(250);
-  const [ceilingHeight, setCeilingHeight] = useState(9);
+  const [roomArea, setRoomArea] = React.useState(250);
+  const [ceilingHeight, setCeilingHeight] = React.useState(9);
 
   // CADR formula: Room Volume (sq ft * height) * 4.5 Air Changes / Hour / 60
   const roomVolume = roomArea * ceilingHeight;
@@ -63,11 +63,12 @@ export default function IndoorHacks() {
               min="80"
               max="800"
               step="10"
+              aria-label="Room area in square feet"
               value={roomArea}
               onChange={(e) => setRoomArea(Number(e.target.value))}
-              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
             />
-            <div className="flex justify-between text-[10px] text-slate-500">
+            <div className="flex justify-between text-[10px] text-slate-400 font-medium">
               <span>Bedroom (120 sq ft)</span>
               <span>Living Room (300 sq ft)</span>
               <span>Large Hall (600+ sq ft)</span>
@@ -84,11 +85,12 @@ export default function IndoorHacks() {
               min="7"
               max="14"
               step="0.5"
+              aria-label="Ceiling height in feet"
               value={ceilingHeight}
               onChange={(e) => setCeilingHeight(Number(e.target.value))}
-              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
             />
-            <div className="flex justify-between text-[10px] text-slate-500">
+            <div className="flex justify-between text-[10px] text-slate-400 font-medium">
               <span>Standard (8-9 ft)</span>
               <span>High Ceiling (10-12 ft)</span>
               <span>Loft / Cathedral (14 ft)</span>

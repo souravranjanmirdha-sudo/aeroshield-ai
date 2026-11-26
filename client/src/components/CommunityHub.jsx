@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, AlertTriangle, ShieldCheck, HeartHandshake, CheckCircle2, PlusCircle, Car, Flame, Sparkles } from 'lucide-react';
+import { Users, AlertTriangle, HeartHandshake, PlusCircle } from 'lucide-react';
 
 export default function CommunityHub() {
   const [communityData, setCommunityData] = useState(null);
@@ -169,7 +169,7 @@ export default function CommunityHub() {
               <AlertTriangle className="w-4 h-4 text-amber-400" />
               Community Hotspot Watch & Traffic Smog Alerts
             </h3>
-            <span className="text-[10px] text-slate-500">Crowdsourced & sensor corroborated</span>
+            <span className="text-[10px] text-slate-400 font-medium">Crowdsourced & sensor corroborated</span>
           </div>
 
           <div className="space-y-3">

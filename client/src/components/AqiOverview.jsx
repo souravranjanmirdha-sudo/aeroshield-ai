@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Clock, Flame, ShieldAlert, Sparkles, Wind, CheckCircle2 } from 'lucide-react';
+import { Clock, Flame, Wind, CheckCircle2 } from 'lucide-react';
 
 export default function AqiOverview({ aqiData, loading }) {
   if (loading || !aqiData) {
@@ -77,7 +77,7 @@ export default function AqiOverview({ aqiData, loading }) {
 
           <div className="text-xs text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-2.5">
             <span>{location.city}, {location.country || 'Region'}</span>
-            <span className="text-[11px] text-slate-500">Updated hourly</span>
+            <span className="text-[11px] text-slate-400 font-medium">Updated hourly</span>
           </div>
         </div>
 
@@ -101,7 +101,7 @@ export default function AqiOverview({ aqiData, loading }) {
             <span className="text-rose-400 font-medium">
               {(current.pm2_5 / 15).toFixed(1)}x WHO guideline
             </span>
-            <span className="text-[11px] text-slate-500">Penetrates deep lungs</span>
+            <span className="text-[11px] text-slate-400 font-medium">Penetrates deep lungs</span>
           </div>
         </div>
 
@@ -121,7 +121,7 @@ export default function AqiOverview({ aqiData, loading }) {
 
           <div className="text-xs text-slate-400 border-t border-slate-800/80 pt-2.5">
             <span className="text-amber-300 font-medium">Berkeley Earth Benchmark</span>
-            <p className="text-[11px] text-slate-500 mt-0.5">Continuous outdoor breathing equivalent</p>
+            <p className="text-[11px] text-slate-400 font-medium mt-0.5">Continuous outdoor breathing equivalent</p>
           </div>
         </div>
 
@@ -135,23 +135,23 @@ export default function AqiOverview({ aqiData, loading }) {
           <div className="grid grid-cols-2 gap-2 my-2">
             <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800">
               <div className="text-[10px] text-slate-400">PM10 (Dust)</div>
-              <div className="text-sm font-bold text-slate-200">{current.pm10} <span className="text-[10px] text-slate-500">µg</span></div>
+              <div className="text-sm font-bold text-slate-200">{current.pm10} <span className="text-[10px] text-slate-400 font-medium">µg</span></div>
             </div>
             <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800">
               <div className="text-[10px] text-slate-400">NO2 (Traffic)</div>
-              <div className="text-sm font-bold text-slate-200">{current.no2} <span className="text-[10px] text-slate-500">µg</span></div>
+              <div className="text-sm font-bold text-slate-200">{current.no2} <span className="text-[10px] text-slate-400 font-medium">µg</span></div>
             </div>
             <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800">
               <div className="text-[10px] text-slate-400">CO (Combustion)</div>
-              <div className="text-sm font-bold text-slate-200">{current.co} <span className="text-[10px] text-slate-500">µg</span></div>
+              <div className="text-sm font-bold text-slate-200">{current.co} <span className="text-[10px] text-slate-400 font-medium">µg</span></div>
             </div>
             <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800">
               <div className="text-[10px] text-slate-400">SO2 (Industrial)</div>
-              <div className="text-sm font-bold text-slate-200">{current.so2} <span className="text-[10px] text-slate-500">µg</span></div>
+              <div className="text-sm font-bold text-slate-200">{current.so2} <span className="text-[10px] text-slate-400 font-medium">µg</span></div>
             </div>
           </div>
 
-          <div className="text-[11px] text-slate-500 border-t border-slate-800/80 pt-2">
+          <div className="text-[11px] text-slate-400 font-medium border-t border-slate-800/80 pt-2">
             Multivariable urban sensor blend
           </div>
         </div>

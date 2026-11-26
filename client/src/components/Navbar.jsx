@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wind, MapPin, Search, ShieldCheck, Key, RefreshCw } from 'lucide-react';
+import { Wind, MapPin, Search, Key, RefreshCw } from 'lucide-react';
 
 const POPULAR_CITIES = ['Delhi', 'Lahore', 'Beijing', 'Salt Lake City', 'Milan', 'London', 'Mumbai'];
 
@@ -44,20 +44,22 @@ export default function Navbar({
             <div className="flex items-center gap-2 md:hidden">
               <button
                 onClick={onOpenSettings}
-                className={`p-2 rounded-lg border text-xs flex items-center gap-1 ${
+                className={`p-2.5 min-w-[44px] min-h-[44px] justify-center rounded-xl border text-xs flex items-center gap-1 transition-colors ${
                   hasApiKey
                     ? 'border-emerald-600 bg-emerald-950/60 text-emerald-300'
                     : 'border-slate-700 bg-slate-800 text-slate-300'
                 }`}
                 title="AI Settings"
+                aria-label="Open AI Settings"
               >
                 <Key className="w-4 h-4" />
               </button>
               <button
                 onClick={onRefresh}
                 disabled={loadingAqi}
-                className="p-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:text-white"
+                className="p-2.5 min-w-[44px] min-h-[44px] justify-center rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:text-white transition-colors"
                 title="Refresh Air Quality"
+                aria-label="Refresh Air Quality"
               >
                 <RefreshCw className={`w-4 h-4 ${loadingAqi ? 'animate-spin text-cyan-400' : ''}`} />
               </button>
@@ -71,7 +73,7 @@ export default function Navbar({
                 <button
                   key={c}
                   onClick={() => onSelectCity(c)}
-                  className={`text-xs px-2.5 py-1 rounded-lg transition-all ${
+                  className={`text-xs px-3 py-1.5 min-h-[36px] rounded-lg transition-all ${
                     selectedCity.toLowerCase() === c.toLowerCase()
                       ? 'bg-cyan-500 text-slate-950 font-semibold shadow-sm'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -83,19 +85,22 @@ export default function Navbar({
             </div>
 
             <form onSubmit={onSearchSubmit} className="relative flex-1 sm:w-64">
-              <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
+                id="city-search"
                 type="text"
+                aria-label="Search city name"
                 placeholder="Search any city..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 placeholder-slate-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-10 py-2.5 min-h-[44px] text-xs text-slate-200 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 placeholder-slate-400"
               />
               <button
                 type="submit"
-                className="absolute right-2 top-2 text-slate-400 hover:text-cyan-400"
+                aria-label="Search city"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 min-w-[32px] min-h-[32px] flex items-center justify-center text-slate-300 hover:text-cyan-400 rounded-lg transition-colors cursor-pointer"
               >
-                <Search className="w-3.5 h-3.5" />
+                <Search className="w-4 h-4" />
               </button>
             </form>
 
@@ -104,8 +109,9 @@ export default function Navbar({
               <button
                 onClick={onRefresh}
                 disabled={loadingAqi}
-                className="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-300 hover:text-white hover:border-slate-700 text-xs flex items-center gap-1.5 transition-all"
+                className="px-3 py-2 min-h-[40px] rounded-xl border border-slate-800 bg-slate-950 text-slate-300 hover:text-white hover:border-slate-700 text-xs flex items-center gap-1.5 transition-all cursor-pointer"
                 title="Refresh AQI"
+                aria-label="Live sync air quality"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loadingAqi ? 'animate-spin text-cyan-400' : ''}`} />
                 <span>Live Sync</span>
@@ -113,11 +119,12 @@ export default function Navbar({
 
               <button
                 onClick={onOpenSettings}
-                className={`px-3 py-1.5 rounded-xl border text-xs flex items-center gap-1.5 transition-all ${
+                className={`px-3 py-2 min-h-[40px] rounded-xl border text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                   hasApiKey
                     ? 'border-emerald-600/70 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-950/70'
                     : 'border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-200 hover:border-slate-700'
                 }`}
+                aria-label="Configure Gemini API Settings"
               >
                 <Key className="w-3.5 h-3.5" />
                 <span>{hasApiKey ? 'Gemini Active' : 'API Key'}</span>

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 "use client"
 
 import { useEffect, useRef } from "react"
@@ -702,7 +703,6 @@ export function ShaderMetal({
       instanceRef.current?.destroy()
       instanceRef.current = null
     }
-    // Engine reads live options via setOptions; mount once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -727,9 +727,6 @@ export function ShaderMetal({
         className
       )}
     >
-      {/* Firefox can hand a WebGL canvas straight to the system compositor,
-          which ignores rounded clips. The mask on the root keeps it in the
-          page's own layer, so the parent's radius holds. */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 size-full rounded-[inherit]"
